@@ -14,6 +14,7 @@ public record PdbEntity(
         String sequence) {
 
     private static final Pattern LETTERS = Pattern.compile("[A-Z]+");
+    private static final Pattern NUCLEOTIDES = Pattern.compile("[ACGTUN]+");
 
     public PdbEntity {
         Objects.requireNonNull(code, "El codigo PDB es obligatorio");
@@ -39,5 +40,15 @@ public record PdbEntity(
 
     public int length() {
         return sequence.length();
+    }
+
+
+    /**
+     * Heuristica: una secuencia hecha solo de A, C, G, T, U, N se considera
+     * acido nucleico. Limite conocido: un peptido hecho solo de esas letras
+     * se confundiria.
+     */
+    public boolean isProtein() {
+        return !NUCLEOTIDES.matcher(sequence).matches();
     }
 }

@@ -43,4 +43,11 @@ class PdbEntityTest {
         original.add("B");
         assertEquals(List.of("A"), e.chains());
     }
+
+    @Test
+    void distingueProteinasDeAcidosNucleicos() {
+        assertEquals(true, entity(List.of("A"), "VLSPADK").isProtein());
+        assertEquals(false, entity(List.of("A"), "ACGTACGT").isProtein());
+        assertEquals(false, entity(List.of("A"), "ACGUNACGU").isProtein());
+    }
 }
