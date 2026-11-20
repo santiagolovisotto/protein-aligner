@@ -119,4 +119,18 @@ class RcsbPdbEntrySourceTest {
 
         assertThrows(PdbUnavailableException.class, () -> fuente.fetchEntities(HEMOGLOBINA));
     }
+
+    @Test
+    void elMensajeDeIdInvalidoDeRcsbSeTrataComoEntradaInexistente() {
+        responder(200, "No valid PDB IDs were submitted.");
+
+        assertThrows(PdbEntryNotFoundException.class, () -> fuente().fetchEntities(HEMOGLOBINA));
+    }
+
+    @Test
+    void elMensajeDeNoEncontradoDeRcsbSeTrataComoEntradaInexistente() {
+        responder(200, "No fasta files were found.");
+
+        assertThrows(PdbEntryNotFoundException.class, () -> fuente().fetchEntities(HEMOGLOBINA));
+    }
 }

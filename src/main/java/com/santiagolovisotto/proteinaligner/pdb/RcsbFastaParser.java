@@ -3,6 +3,7 @@ package com.santiagolovisotto.proteinaligner.pdb;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Comparator;
 
 /**
  * Convierte la respuesta FASTA de RCSB (una entrada por entidad) en PdbEntity.
@@ -39,6 +40,7 @@ final class RcsbFastaParser {
         if (header != null) {
             entities.add(toEntity(code, header, sequence.toString()));
         }
+        entities.sort(Comparator.comparingInt(PdbEntity::entityId));
         return List.copyOf(entities);
     }
 

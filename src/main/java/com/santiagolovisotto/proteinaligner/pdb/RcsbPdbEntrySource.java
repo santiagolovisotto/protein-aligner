@@ -14,6 +14,10 @@ public class RcsbPdbEntrySource implements PdbEntrySource {
     private final String baseUrl;
     private final Duration requestTimeout;
 
+    private static final List<String> NOT_FOUND_MESSAGES = List.of(
+            "No valid PDB IDs",
+            "No fasta files were found");
+
     public RcsbPdbEntrySource(String baseUrl, Duration connectTimeout, Duration requestTimeout) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.requestTimeout = requestTimeout;
@@ -50,10 +54,10 @@ public class RcsbPdbEntrySource implements PdbEntrySource {
             throw new PdbUnavailableException("RCSB PDB respondio con estado " + status);
         }
 
-        List<PdbEntity> entities = RcsbFastaParser.parse(code, response.body());
-        if (entities.isEmpty()) {
+        String body = response.body();
+        if (body.isBlank() || NOT_FOUND_MESSAGES.stream().anyMatch(body::contains)) {
             throw new PdbEntryNotFoundException(code);
         }
-        return entities;
+        return RcsbFastaParser.parse(code, body);
     }
 }
