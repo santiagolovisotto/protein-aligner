@@ -21,6 +21,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation('org.biojava:biojava-alignment:7.2.6') {
+		// openchart no esta en Maven Central y solo se usa para dibujar arboles filogeneticos
+		exclude group: 'openchart', module: 'openchart'
+		// BioJava trae un binding de log4j que choca con el log4j-to-slf4j de Spring Boot
+		exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j2-impl'
+	}
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'

@@ -19,4 +19,11 @@ public class PdbLookupService {
         }
         return proteins;
     }
+
+    public PdbEntity findProtein(PdbCode code, int entityId) {
+        return findProteins(code).stream()
+                .filter(entity -> entity.entityId() == entityId)
+                .findFirst()
+                .orElseThrow(() -> new ProteinEntityNotFoundException(code, entityId));
+    }
 }
