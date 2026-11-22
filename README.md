@@ -10,51 +10,62 @@
 
 Aplicación web para comparar dos proteínas mediante **alineamiento global**
 (Needleman-Wunsch) y **alineamiento local** (Smith-Waterman). Las proteínas se
-eligen ingresando su código PDB, y los algoritmos los resuelve
-[BioJava](https://biojava.org/): el foco del proyecto no es reimplementarlos,
-sino usarlos bien, mostrar los resultados con claridad y analizar casos donde
-ambos enfoques dan respuestas distintas.
+eligen ingresando su código PDB (cualquier entrada del Protein Data Bank), y
+los algoritmos los resuelve [BioJava](https://biojava.org/): el foco del
+proyecto no es reimplementarlos, sino usarlos bien, mostrar los resultados con
+claridad y analizar casos donde ambos enfoques dan respuestas distintas.
 
 Trabajo final de la materia Bioinformática (UNAJ).
+
+<!-- Capturas: guardarlas en docs/ y descomentar
+![Comparación global](docs/captura-global.png)
+![Comparación local](docs/captura-local.png)
+-->
 
 ## Contenido
 
 - [Estado del proyecto](#estado-del-proyecto)
 - [Qué hace](#qué-hace)
 - [Global vs. local](#global-vs-local)
+- [Cómo leer el resultado](#cómo-leer-el-resultado)
 - [Cómo ejecutarlo](#cómo-ejecutarlo)
+- [API](#api)
 - [Arquitectura](#arquitectura)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Decisiones de diseño](#decisiones-de-diseño)
-- [Tests y calidad](#tests-y-calidad)
+- [Tests y verificación](#tests-y-verificación)
 - [Limitaciones conocidas](#limitaciones-conocidas)
 - [Licencia](#licencia)
 
 ## Estado del proyecto
 
-En desarrollo, trabajado por sprints.
-
 - [x] Base del proyecto: módulos, test de arquitectura, CI, endpoint de salud y Docker
-- [x] Modelo de dominio: código PDB validado y entidades de una entrada
-- [ ] Obtención de secuencias desde RCSB PDB
-- [ ] Alineamiento global (Needleman-Wunsch)
-- [ ] Alineamiento local (Smith-Waterman)
-- [ ] Front web
-- [ ] Parámetros: matriz de sustitución y penalización de gaps
+- [x] Obtención de secuencias desde RCSB PDB, con caché en memoria
+- [x] Alineamiento global (Needleman-Wunsch)
+- [x] Alineamiento local (Smith-Waterman)
+- [x] Front web con visualizaciones
+- [ ] Parámetros desde el front: la API ya acepta penalizaciones de gap; el front usa los valores por defecto
 - [ ] Análisis de ejemplos y presentación
 
 ## Qué hace
 
-1. Se ingresa el código PDB de cada proteína (por ejemplo, `4HHB`).
-2. La aplicación consulta la base de datos [RCSB PDB](https://www.rcsb.org/) y
-   obtiene las secuencias. Si la entrada tiene varias entidades (como la
-   hemoglobina, con cadenas alfa y beta), se elige cuál alinear.
+1. Se ingresa el código PDB de cada proteína (por ejemplo, `4HHB`) o se elige
+   uno de los ejemplos.
+2. La aplicación consulta [RCSB PDB](https://www.rcsb.org/) y obtiene las
+   secuencias. Si la entrada tiene varias entidades (como la hemoglobina, con
+   cadenas alfa y beta), se elige cuál alinear. Las entidades de ADN o ARN se
+   descartan.
 3. Se elige el algoritmo: global o local.
-4. Se muestra el alineamiento con su score, porcentaje de identidad, similitud
-   y cantidad de gaps. En el alineamiento local, además, las posiciones del
-   fragmento alineado.
+4. Se muestra el resultado con tres visualizaciones: la región alineada en
+   cada proteína, el perfil de conservación a lo largo del alineamiento y el
+   alineamiento con cada columna resaltada (idéntica, similar, sustitución o gap).
 
-<!-- Agregar una captura del front cuando exista -->
+Ejemplo, hemoglobina humana alfa (141 aa) contra beta (146 aa), con BLOSUM62:
+
+| | Score | Identidad | Región alineada |
+| --- | --- | --- | --- |
+| Global | 281 | 64 de 148 (43,2 %) | 1-141 y 1-146 |
+| Local | 288 | 63 de 145 | 2-140 y 3-145 |
 
 ## Global vs. local
 
@@ -65,9 +76,23 @@ En desarrollo, trabajado por sprints.
 | Resultado | Un alineamiento que cubre todo | Un fragmento, con sus posiciones de inicio y fin |
 | Técnica | Programación dinámica sobre una matriz de n x m | Igual, pero los valores negativos se reemplazan por cero |
 
-Ambos usan una matriz de sustitución (como BLOSUM62) y penalizaciones de gap.
-Cambiar cualquiera de ellos cambia el score, por lo que los scores solo son
-comparables bajo los mismos parámetros.
+Un caso calculado a mano, incluido en los tests: `WWWACDEFGHWWW` contra
+`PPPACDEFGHGGG`. El dominio común `ACDEFGH` suma 44 con BLOSUM62. El local lo
+encuentra y descarta los extremos (score 44); el global está obligado a
+alinear los extremos y baja a 26.
+
+## Cómo leer el resultado
+
+- **Score:** suma de los valores de la matriz de sustitución (BLOSUM62) para
+  cada par alineado, menos las penalizaciones de gap. Solo es comparable entre
+  alineamientos hechos con la misma matriz y los mismos parámetros.
+- **Identidad:** columnas con el mismo aminoácido en las dos secuencias.
+- **Similitud:** identidades más sustituciones con score positivo en la matriz.
+- **Gaps:** columnas en las que una de las secuencias tiene un hueco.
+- Los porcentajes se calculan sobre el largo del alineamiento (columnas, con
+  los gaps incluidos).
+- **Penalización de gap** (valores por defecto de BioJava, verificados con
+  tests): un gap de largo n cuesta 10 + n.
 
 ## Cómo ejecutarlo
 
@@ -97,6 +122,26 @@ Requiere Java 21.
 ```
 ./gradlew bootRun
 ```
+
+## API
+
+| Método y ruta | Qué hace |
+| --- | --- |
+| `GET /api/pdb/{codigo}` | Lista las entidades proteicas de una entrada PDB. |
+| `POST /api/align` | Alinea dos entidades. |
+| `GET /actuator/health` | Estado de la aplicación. |
+
+```
+curl -X POST http://localhost:8080/api/align \
+  -H 'Content-Type: application/json' \
+  -d '{"query":{"code":"4HHB","entityId":1},"target":{"code":"4HHB","entityId":2},"type":"GLOBAL"}'
+```
+
+`type` puede ser `GLOBAL` o `LOCAL`. Opcionalmente se pueden indicar `matrix`,
+`gapOpen` y `gapExtension`. Los errores se devuelven en formato `ProblemDetail`:
+400 (solicitud inválida), 404 (entrada o entidad inexistente), 422 (sin
+proteínas, proteína demasiado larga o sin región en común) y 503 (RCSB no
+disponible).
 
 ## Arquitectura
 
@@ -133,7 +178,7 @@ protein-aligner/
 │   │   ├── pdb/                    acceso a RCSB PDB
 │   │   ├── alignment/              alineamiento (adaptador BioJava en alignment.biojava)
 │   │   └── web/                    API REST
-│   ├── main/resources/static/      front web
+│   ├── main/resources/static/      front web (un solo archivo)
 │   └── test/java/...               tests por módulo y test de arquitectura
 ├── Dockerfile                      imagen en dos etapas (compila y ejecuta)
 ├── docker-compose.yml              levanta la aplicación con un comando
@@ -153,26 +198,40 @@ protein-aligner/
 - **La red queda detrás de una interfaz.** El acceso a RCSB está definido como
   contrato, de modo que los tests y el CI usan una versión simulada y nunca
   dependen de internet.
+- **Un servicio externo que no sigue buenas prácticas HTTP.** RCSB responde 200
+  incluso para entradas inexistentes, con un mensaje de texto en el cuerpo; el
+  adaptador reconoce esos mensajes.
+- **Un front sin dependencias.** Una sola página en HTML y JavaScript, con los
+  gráficos dibujados en SVG, servida por la misma aplicación.
 - **Un solo comando para levantarlo.** Docker Compose con un único servicio,
   puerto configurable y control de salud.
 
-## Tests y calidad
+## Tests y verificación
 
 ```
 ./gradlew test
 ```
 
+- Los scores se verifican contra casos calculados a mano con BLOSUM62.
+- Un test contrasta las identidades y similitudes propias con los contadores
+  de BioJava.
+- Los tests de BioJava documentan su comportamiento (por ejemplo, el costo de
+  un gap).
+- El acceso a RCSB se prueba con un servidor HTTP local, sin internet.
+
 Cada push y pull request a `main` dispara el CI en GitHub Actions: compila,
-corre los tests unitarios y el test de arquitectura.
+corre los tests y el test de arquitectura.
 
 ## Limitaciones conocidas
 
-- Se alinean proteínas: las entidades que son ADN o ARN se detectan por
-  heurística y se rechazan.
-- Hay un tope de longitud por secuencia, porque ambos algoritmos consumen
-  memoria proporcional a n x m.
+- Solo se alinean proteínas: las entidades de ADN o ARN se detectan por
+  heurística (secuencias de solo A, C, G, T, U, N) y se rechazan.
+- Hay un tope de 2000 residuos por proteína, configurable, porque ambos
+  algoritmos consumen memoria proporcional a n x m. Alinear dos proteínas de
+  1372 residuos tardó cerca de 1 segundo.
+- Solo está disponible la matriz BLOSUM62.
 - Depende de que RCSB PDB esté disponible.
 
 ## Licencia
 
-GPL-V3.0
+GPL-3.0
