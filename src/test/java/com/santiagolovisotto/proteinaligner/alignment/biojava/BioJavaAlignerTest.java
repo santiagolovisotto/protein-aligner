@@ -5,6 +5,7 @@ import com.santiagolovisotto.proteinaligner.alignment.AlignmentRequest;
 import com.santiagolovisotto.proteinaligner.alignment.AlignmentResult;
 import com.santiagolovisotto.proteinaligner.alignment.AlignmentType;
 import com.santiagolovisotto.proteinaligner.alignment.SequenceRange;
+import com.santiagolovisotto.proteinaligner.alignment.NoSimilarRegionException;
 import org.biojava.nbio.alignment.Alignments;
 import org.biojava.nbio.alignment.Alignments.PairwiseSequenceAlignerType;
 import org.biojava.nbio.alignment.SimpleGapPenalty;
@@ -14,9 +15,7 @@ import org.biojava.nbio.core.sequence.ProteinSequence;
 import org.biojava.nbio.core.sequence.compound.AminoAcidCompound;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 class BioJavaAlignerTest {
 
@@ -24,6 +23,10 @@ class BioJavaAlignerTest {
 
     private AlignmentResult global(String query, String target) {
         return aligner.align(new AlignmentRequest(query, target, AlignmentType.GLOBAL, AlignmentParameters.defaults()));
+    }
+
+    private AlignmentResult local(String query, String target) {
+        return aligner.align(new AlignmentRequest(query, target, AlignmentType.LOCAL, AlignmentParameters.defaults()));
     }
 
     @Test
@@ -114,11 +117,31 @@ class BioJavaAlignerTest {
         assertDoesNotThrow(() -> global("ACXDE", "ACDE"));
     }
 
+    // El dominio comun ACDEFGH (A4+C9+D6+E5+F6+G6+H8 = 44) esta rodeado de extremos distintos.
+    // W contra P vale -4 y W contra G vale -2: el local los descarta.
     @Test
-    void elAlineamientoLocalTodaviaNoEstaImplementado() {
-        AlignmentRequest request = new AlignmentRequest("ACDE", "ACE", AlignmentType.LOCAL,
-                AlignmentParameters.defaults());
+    void elLocalEncuentraElDominioComunYDescartaLosExtremos() {
+        AlignmentResult r = local("WWWACDEFGHWWW", "PPPACDEFGHGGG");
 
-        assertThrows(UnsupportedOperationException.class, () -> aligner.align(request));
+        assertEquals(44.0, r.score());
+        assertEquals("ACDEFGH", r.alignedQuery());
+        assertEquals("ACDEFGH", r.alignedTarget());
+        assertEquals(7, r.identities());
+        assertEquals(new SequenceRange(4, 10), r.queryRange());
+        assertEquals(new SequenceRange(4, 10), r.targetRange());
     }
+
+    // El global del mismo par esta obligado a alinear los extremos:
+    // 44 + 3 x (W,P = -4) + 3 x (W,G = -2) = 26. Es el contraste global contra local.
+    @Test
+    void elGlobalDelMismoParPenalizaLosExtremos() {
+        assertEquals(26.0, global("WWWACDEFGHWWW", "PPPACDEFGHGGG").score());
+    }
+
+    // W contra P vale -4: ninguna region tiene score positivo.
+    @Test
+    void elLocalSinRegionEnComunLanzaUnaExcepcion() {
+        assertThrows(NoSimilarRegionException.class, () -> local("WWW", "PPP"));
+    }
+
 }

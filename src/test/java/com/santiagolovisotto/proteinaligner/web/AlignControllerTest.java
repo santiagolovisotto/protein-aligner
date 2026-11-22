@@ -1,11 +1,6 @@
 package com.santiagolovisotto.proteinaligner.web;
 
-import com.santiagolovisotto.proteinaligner.alignment.AlignProteinsService;
-import com.santiagolovisotto.proteinaligner.alignment.Aligner;
-import com.santiagolovisotto.proteinaligner.alignment.AlignmentRequest;
-import com.santiagolovisotto.proteinaligner.alignment.AlignmentResult;
-import com.santiagolovisotto.proteinaligner.alignment.AlignmentType;
-import com.santiagolovisotto.proteinaligner.alignment.SequenceRange;
+import com.santiagolovisotto.proteinaligner.alignment.*;
 import com.santiagolovisotto.proteinaligner.pdb.PdbCode;
 import com.santiagolovisotto.proteinaligner.pdb.PdbEntity;
 import com.santiagolovisotto.proteinaligner.pdb.PdbEntryNotFoundException;
@@ -34,7 +29,7 @@ class AlignControllerTest {
 
     private final Aligner alineadorFalso = request -> {
         if (request.type() == AlignmentType.LOCAL) {
-            throw new UnsupportedOperationException("El alineamiento local todavia no esta implementado");
+            throw new NoSimilarRegionException();
         }
         recibida.set(request);
         return new AlignmentResult(AlignmentType.GLOBAL, request.parameters(), 7.0,
@@ -146,9 +141,9 @@ class AlignControllerTest {
     }
 
     @Test
-    void elAlineamientoLocalDa501MientrasNoEsteImplementado() throws Exception {
+    void unLocalSinRegionEnComunDa422() throws Exception {
         alinear(mvc(FUENTE, 100), cuerpo("").replace("GLOBAL", "LOCAL"))
-                .andExpect(status().isNotImplemented());
+                .andExpect(status().is(422));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.santiagolovisotto.proteinaligner.web;
 
+import com.santiagolovisotto.proteinaligner.alignment.NoSimilarRegionException;
 import com.santiagolovisotto.proteinaligner.alignment.SequenceTooLongException;
 import com.santiagolovisotto.proteinaligner.pdb.InvalidPdbCodeException;
 import com.santiagolovisotto.proteinaligner.pdb.NoProteinEntitiesException;
@@ -67,9 +68,9 @@ class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(422), e.getMessage());
     }
 
-    @ExceptionHandler(UnsupportedOperationException.class)
-    ProblemDetail notImplemented(UnsupportedOperationException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_IMPLEMENTED, e.getMessage());
+    @ExceptionHandler(NoSimilarRegionException.class)
+    ProblemDetail noSimilarRegion(NoSimilarRegionException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(422), e.getMessage());
     }
 
     @ExceptionHandler(PdbUnavailableException.class)

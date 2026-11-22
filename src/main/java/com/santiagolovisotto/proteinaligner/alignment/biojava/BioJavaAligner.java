@@ -4,6 +4,7 @@ import com.santiagolovisotto.proteinaligner.alignment.AlignmentRequest;
 import com.santiagolovisotto.proteinaligner.alignment.AlignmentResult;
 import com.santiagolovisotto.proteinaligner.alignment.AlignmentType;
 import com.santiagolovisotto.proteinaligner.alignment.Aligner;
+import com.santiagolovisotto.proteinaligner.alignment.NoSimilarRegionException;
 import com.santiagolovisotto.proteinaligner.alignment.SequenceRange;
 import com.santiagolovisotto.proteinaligner.alignment.SubstitutionMatrixType;
 import org.biojava.nbio.alignment.Alignments;
@@ -30,10 +31,6 @@ class BioJavaAligner implements Aligner {
 
     @Override
     public AlignmentResult align(AlignmentRequest request) {
-        if (request.type() != AlignmentType.GLOBAL) {
-            throw new UnsupportedOperationException("El alineamiento local todavia no esta implementado");
-        }
-
         SubstitutionMatrix<AminoAcidCompound> matrix = matrixFor(request.parameters().matrix());
         GapPenalty gaps = new SimpleGapPenalty(
                 (short) request.parameters().gapOpen(),
@@ -42,9 +39,14 @@ class BioJavaAligner implements Aligner {
         PairwiseSequenceAligner<ProteinSequence, AminoAcidCompound> aligner = Alignments.getPairwiseAligner(
                 toProtein("query", request.query()),
                 toProtein("target", request.target()),
-                PairwiseSequenceAlignerType.GLOBAL,
+                biojavaType(request.type()),
                 gaps,
                 matrix);
+
+        double score = aligner.getScore();
+        if (request.type() == AlignmentType.LOCAL && score <= 0) {
+            throw new NoSimilarRegionException();
+        }
         SequencePair<ProteinSequence, AminoAcidCompound> pair = aligner.getPair();
 
         StringBuilder alignedQuery = new StringBuilder();
@@ -75,17 +77,36 @@ class BioJavaAligner implements Aligner {
             }
         }
 
+        SequenceRange queryRange;
+        SequenceRange targetRange;
+        if (request.type() == AlignmentType.GLOBAL) {
+            queryRange = new SequenceRange(1, request.query().length());
+            targetRange = new SequenceRange(1, request.target().length());
+        } else {
+            // Un alineamiento local empieza y termina en columnas sin gap.
+            int last = pair.getLength();
+            queryRange = new SequenceRange(pair.getIndexInQueryAt(1), pair.getIndexInQueryAt(last));
+            targetRange = new SequenceRange(pair.getIndexInTargetAt(1), pair.getIndexInTargetAt(last));
+        }
+
         return new AlignmentResult(
                 request.type(),
                 request.parameters(),
-                aligner.getScore(),
+                score,
                 alignedQuery.toString(),
                 alignedTarget.toString(),
                 matchLine.toString(),
                 identities,
                 similarities,
-                new SequenceRange(1, request.query().length()),
-                new SequenceRange(1, request.target().length()));
+                queryRange,
+                targetRange);
+    }
+
+    private static PairwiseSequenceAlignerType biojavaType(AlignmentType type) {
+        return switch (type) {
+            case GLOBAL -> PairwiseSequenceAlignerType.GLOBAL;
+            case LOCAL -> PairwiseSequenceAlignerType.LOCAL;
+        };
     }
 
     private static SubstitutionMatrix<AminoAcidCompound> matrixFor(SubstitutionMatrixType type) {
