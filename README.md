@@ -59,13 +59,6 @@ Trabajo final de la materia Bioinformática (UNAJ).
 ![Selección de entidades PDB](docs/seleccion_proteinas_2.png)
 ![Selección de algoritmo y ejecución](docs/seleccion_algoritmo.png)
 
-Ejemplo, hemoglobina humana alfa (141 aa) contra beta (146 aa), con BLOSUM62:
-
-| | Score | Identidad | Región alineada |
-| --- | --- | --- | --- |
-| Global | 281 | 64 de 148 (43,2 %) | 1-141 y 1-146 |
-| Local | 288 | 63 de 145 | 2-140 y 3-145 |
-
 ## Global vs. local
 
 | | Needleman-Wunsch (global) | Smith-Waterman (local) |
