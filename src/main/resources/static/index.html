@@ -1,498 +1,581 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>protein-aligner · Comparación de proteínas</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --ink: #111; --paper: #fff; --muted: #5c5c5c; --hair: #d6d6d6;
-            --id: #1f3a5f; --sim: #9db4d3; --mis: #e4e4e4; --gap: #b3261e;
-            --serif: "Source Serif 4", "Source Serif Pro", Charter, "Bitstream Charter", Georgia, "Times New Roman", serif;
-            --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-        }
-        * { box-sizing: border-box; border-radius: 0; }
-        body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.55 var(--serif); }
-        main { max-width: 1040px; margin: 0 auto; padding: 0 24px 72px; }
-        header { border-top: 5px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 20px 0 16px; margin-bottom: 28px; }
-        .kicker { font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-        h1 { margin: 4px 0 6px; font-size: 2.3rem; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; }
-        .deck { margin: 0; color: var(--muted); font-style: italic; max-width: 70ch; }
-        h2 { margin: 0 0 12px; font-size: .78rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
-        h3 { margin: 0 0 4px; font-size: 1.35rem; line-height: 1.25; font-weight: 600; }
-        .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--ink); }
-        .panel { padding: 18px 20px; }
-        .panel + .panel { border-left: 1px solid var(--ink); }
-        @media (max-width: 760px) { .panels { grid-template-columns: 1fr; } .panel + .panel { border-left: 0; border-top: 1px solid var(--ink); } }
-        label.cap { display: block; margin: 12px 0 4px; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-        .panel label.cap:first-of-type { margin-top: 0; }
-        .row { display: flex; gap: 8px; }
-        input[type="text"], select { width: 100%; padding: 9px 10px; font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); }
-        input[type="text"] { font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
-        button { padding: 9px 16px; font: inherit; font-size: .95rem; cursor: pointer; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); }
-        button:hover { background: #f1f1f1; }
-        button.primary { background: var(--ink); color: #fff; font-weight: 600; letter-spacing: .04em; }
-        button.primary:hover { background: #333; }
-        button:disabled { opacity: .5; cursor: not-allowed; }
-        .hint { margin-top: 6px; color: var(--muted); font-size: .85rem; min-height: 1.3em; }
-        .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 18px; }
-        .chips span { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
-        .chips button { padding: 5px 12px; font-size: .88rem; }
-        .toolbar { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; margin: 22px 0; }
-        .toolbar label { margin-right: 18px; cursor: pointer; }
-        input[type="radio"] { accent-color: var(--id); }
-        .error { border: 1px solid var(--gap); border-left-width: 6px; color: var(--gap); padding: 10px 14px; margin: 0 0 22px; }
-        .hidden { display: none; }
-        #result { border-top: 5px solid var(--ink); padding-top: 18px; }
-        .sub { margin: 0 0 22px; color: var(--muted); font-style: italic; }
-        .figures { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); margin-bottom: 26px; }
-        .figures div { padding: 14px 16px; }
-        .figures div + div { border-left: 1px solid var(--hair); }
-        @media (max-width: 760px) { .figures { grid-template-columns: 1fr 1fr; } }
-        .num { font-size: 2.6rem; line-height: 1.05; font-weight: 600; letter-spacing: -.02em; }
-        .cap2 { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-        .note { font-size: .85rem; color: var(--muted); margin-top: 2px; }
-        table.parties { width: 100%; border-collapse: collapse; margin-bottom: 26px; font-size: .92rem; }
-        .parties th { text-align: left; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--ink); padding: 6px 8px 6px 0; }
-        .parties td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
-        figure { margin: 0 0 26px; }
-        figcaption { font-size: .85rem; color: var(--muted); margin-top: 6px; }
-        svg { display: block; width: 100%; height: auto; }
-        .svg-label { font: 600 13px var(--serif); fill: var(--ink); }
-        .svg-note { font: 12px var(--serif); fill: var(--muted); }
-        .bar-outline { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
-        .fid { fill: var(--id); } .fsim { fill: var(--sim); } .fmis { fill: var(--mis); } .fgap { fill: var(--gap); }
-        .grid { stroke: var(--hair); stroke-width: 1; } .axis { stroke: var(--ink); stroke-width: 1; }
-        .line-id { fill: none; stroke: var(--id); stroke-width: 2; }
-        .line-sim { fill: none; stroke: var(--sim); stroke-width: 2; }
-        .legend { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: .85rem; color: var(--muted); margin-top: 6px; }
-        .sw { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--ink); }
-        .sw.id { background: var(--id); } .sw.sim { background: var(--sim); } .sw.mis { background: var(--mis); } .sw.gap { background: var(--gap); }
-        #alignment { border: 1px solid var(--ink); padding: 14px 16px; overflow-x: auto; font: 13px/1.5 var(--mono); }
-        .ln { white-space: pre; }
-        .ln .tag { display: inline-block; width: 2ch; color: var(--muted); }
-        .ln .pos { display: inline-block; width: 5ch; text-align: right; color: var(--muted); }
-        .ln .endpos { color: var(--muted); }
-        .ln .seq { margin: 0 1ch; }
-        .c-i { background: var(--id); color: #fff; } .c-s { background: var(--sim); } .c-g { color: var(--gap); font-weight: 500; }
-        .method { font-size: .88rem; color: var(--muted); border-top: 1px solid var(--hair); margin-top: 22px; padding-top: 12px; }
-        @media print { .no-print { display: none; } }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>protein-aligner · Comparación de proteínas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #111; --paper: #fff; --muted: #5c5c5c; --hair: #d6d6d6;
+    --id: #1f3a5f; --sim: #9db4d3; --mis: #e4e4e4; --gap: #b3261e;
+    --serif: "Source Serif 4", "Source Serif Pro", Charter, "Bitstream Charter", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; border-radius: 0; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.55 var(--serif); }
+  main { max-width: 1040px; margin: 0 auto; padding: 0 24px 72px; }
+  header { border-top: 5px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 20px 0 16px; margin-bottom: 22px; }
+  .kicker { font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 4px 0 6px; font-size: 2.3rem; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; }
+  .deck { margin: 0; color: var(--muted); font-style: italic; max-width: 70ch; }
+  h2 { margin: 0 0 12px; font-size: .78rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+  h3 { margin: 0 0 4px; font-size: 1.35rem; line-height: 1.25; font-weight: 600; }
+
+  details.guide { border: 1px solid var(--ink); padding: 10px 18px; margin: 0 0 22px; }
+  details.guide summary { cursor: pointer; font-weight: 600; }
+  details.guide p { margin: 10px 0 0; max-width: 80ch; }
+  .gloss { margin: 10px 0 0; }
+  .gloss dt { font-weight: 600; margin-top: 10px; }
+  .gloss dd { margin: 0; max-width: 80ch; }
+
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--ink); }
+  .panel { padding: 18px 20px; }
+  .panel + .panel { border-left: 1px solid var(--ink); }
+  @media (max-width: 760px) { .panels { grid-template-columns: 1fr; } .panel + .panel { border-left: 0; border-top: 1px solid var(--ink); } }
+  label.cap { display: block; margin: 12px 0 4px; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .panel label.cap:first-of-type { margin-top: 0; }
+  .row { display: flex; gap: 8px; }
+  input[type="text"], select { width: 100%; padding: 9px 10px; font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); }
+  input[type="text"] { font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+  button { padding: 9px 16px; font: inherit; font-size: .95rem; cursor: pointer; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); }
+  button:hover { background: #f1f1f1; }
+  button.primary { background: var(--ink); color: #fff; font-weight: 600; letter-spacing: .04em; }
+  button.primary:hover { background: #333; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .hint { margin-top: 6px; color: var(--muted); font-size: .85rem; min-height: 1.3em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 18px; }
+  .chips span { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+  .chips button { padding: 5px 12px; font-size: .88rem; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 16px 36px; align-items: center; margin: 22px 0; }
+  .choices { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+  .choice { display: block; cursor: pointer; max-width: 300px; }
+  .optnote { display: block; margin-left: 24px; color: var(--muted); font-size: .85rem; line-height: 1.35; }
+  input[type="radio"] { accent-color: var(--id); }
+
+  .error { border: 1px solid var(--gap); border-left-width: 6px; color: var(--gap); padding: 10px 14px; margin: 0 0 22px; }
+  .hidden { display: none; }
+  #result { border-top: 5px solid var(--ink); padding-top: 18px; }
+  .sub { margin: 0 0 18px; color: var(--muted); font-style: italic; }
+  .reading { border-left: 4px solid var(--ink); padding: 2px 0 2px 16px; margin: 0 0 24px; font-size: 1.12rem; line-height: 1.55; max-width: 80ch; }
+
+  .figures { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); margin-bottom: 18px; }
+  .figures > div { padding: 14px 16px; }
+  .figures > div + div { border-left: 1px solid var(--hair); }
+  @media (max-width: 760px) { .figures { grid-template-columns: 1fr 1fr; } }
+  .num { font-size: 2.6rem; line-height: 1.05; font-weight: 600; letter-spacing: -.02em; }
+  .cap2 { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .note { font-size: .85rem; color: var(--muted); margin-top: 2px; }
+
+  table.parties { width: 100%; border-collapse: collapse; margin-bottom: 26px; font-size: .92rem; }
+  .parties th { text-align: left; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--ink); padding: 6px 8px 6px 0; }
+  .parties td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  figure { margin: 0 0 26px; }
+  figcaption { font-size: .85rem; color: var(--muted); margin-top: 6px; max-width: 90ch; }
+  svg { display: block; width: 100%; height: auto; }
+  .svg-label { font: 600 13px var(--serif); fill: var(--ink); }
+  .svg-note { font: 12px var(--serif); fill: var(--muted); }
+  .bar-outline { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+  .fid { fill: var(--id); } .fsim { fill: var(--sim); } .fmis { fill: var(--mis); } .fgap { fill: var(--gap); }
+  .grid { stroke: var(--hair); stroke-width: 1; } .axis { stroke: var(--ink); stroke-width: 1; }
+  .line-id { fill: none; stroke: var(--id); stroke-width: 2; }
+  .line-sim { fill: none; stroke: var(--sim); stroke-width: 2; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: .85rem; color: var(--muted); margin: 6px 0 10px; }
+  .sw { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--ink); }
+  .sw.id { background: var(--id); } .sw.sim { background: var(--sim); } .sw.mis { background: var(--mis); } .sw.gap { background: var(--gap); }
+  #alignment { border: 1px solid var(--ink); padding: 14px 16px; overflow-x: auto; font: 13px/1.5 var(--mono); }
+  .ln { white-space: pre; }
+  .ln .tag { display: inline-block; width: 2ch; color: var(--muted); }
+  .ln .pos { display: inline-block; width: 5ch; text-align: right; color: var(--muted); }
+  .ln .endpos { color: var(--muted); }
+  .ln .seq { margin: 0 1ch; }
+  .c-i { background: var(--id); color: #fff; } .c-s { background: var(--sim); } .c-g { color: var(--gap); font-weight: 500; }
+  .method { font-size: .88rem; color: var(--muted); border-top: 1px solid var(--hair); margin-top: 22px; padding-top: 12px; }
+  @media print { .no-print { display: none; } }
+</style>
 </head>
 <body>
 <main>
-    <header>
-        <div class="kicker">Bioinformática · Alineamiento de secuencias</div>
-        <h1>Comparación de proteínas</h1>
-        <p class="deck">Alineamiento global (Needleman-Wunsch) y local (Smith-Waterman) entre dos entidades de cualquier entrada del Protein Data Bank.</p>
-    </header>
+  <header>
+    <div class="kicker">Bioinformática · Alineamiento de secuencias</div>
+    <h1>Comparación de proteínas</h1>
+    <p class="deck">Alineamiento global (Needleman-Wunsch) y local (Smith-Waterman) entre dos entidades de cualquier entrada del Protein Data Bank.</p>
+  </header>
 
-    <div class="chips no-print">
-        <span>Ejemplos</span>
-        <button type="button" data-example="hemoglobina">Hemoglobina α vs β (4HHB)</button>
-        <button type="button" data-example="histonas">Histona H3 vs H4 (9ZZZ)</button>
-        <button type="button" data-example="control">Control: α consigo misma</button>
-    </div>
+  <details class="guide no-print" open>
+    <summary>¿Qué hace esta herramienta?</summary>
+    <p>Una proteína es una cadena de aminoácidos, y cada aminoácido se escribe con una letra. Cuando dos proteínas descienden de un antepasado común, sus secuencias de letras se parecen. Esta herramienta pone las dos secuencias una al lado de la otra, letra por letra, y mide cuánto se parecen.</p>
+    <p><strong>Cómo usarla:</strong> 1) escribí el código PDB de cada proteína (el identificador de una estructura en el Protein Data Bank, por ejemplo 4HHB) o tocá un ejemplo; 2) elegí el tipo de comparación; 3) apretá Comparar.</p>
+  </details>
 
-    <div class="panels no-print">
-        <section class="panel">
-            <h2>Proteína A</h2>
-            <label class="cap" for="codeA">Código PDB</label>
-            <div class="row">
-                <input type="text" id="codeA" maxlength="4" placeholder="4HHB" autocomplete="off">
-                <button type="button" id="searchA">Buscar</button>
-            </div>
-            <label class="cap" for="entityA">Entidad</label>
-            <select id="entityA" disabled></select>
-            <div class="hint" id="infoA">Cualquier código de entrada del PDB (4 caracteres).</div>
-        </section>
-        <section class="panel">
-            <h2>Proteína B</h2>
-            <label class="cap" for="codeB">Código PDB</label>
-            <div class="row">
-                <input type="text" id="codeB" maxlength="4" placeholder="1MBN" autocomplete="off">
-                <button type="button" id="searchB">Buscar</button>
-            </div>
-            <label class="cap" for="entityB">Entidad</label>
-            <select id="entityB" disabled></select>
-            <div class="hint" id="infoB">Cualquier código de entrada del PDB (4 caracteres).</div>
-        </section>
-    </div>
+  <div class="chips no-print">
+    <span>Ejemplos</span>
+    <button type="button" data-example="hemoglobina">Hemoglobina α vs β (4HHB)</button>
+    <button type="button" data-example="histonas">Histona H3 vs H4 (9ZZZ)</button>
+    <button type="button" data-example="control">Control: α consigo misma</button>
+  </div>
 
-    <div class="toolbar no-print">
-        <div>
-            <label><input type="radio" name="type" value="GLOBAL" checked> Global (Needleman-Wunsch)</label>
-            <label><input type="radio" name="type" value="LOCAL"> Local (Smith-Waterman)</label>
-        </div>
-        <button type="button" class="primary" id="compare">Comparar</button>
-    </div>
-
-    <div class="error hidden" id="error" role="alert"></div>
-
-    <section class="hidden" id="result">
-        <h3 id="resultTitle"></h3>
-        <p class="sub" id="resultSub"></p>
-
-        <div class="figures">
-            <div><div class="cap2">Score</div><div class="num" id="figScore"></div><div class="note" id="capScore"></div></div>
-            <div><div class="cap2">Identidad</div><div class="num" id="figIdentity"></div><div class="note" id="capIdentity"></div></div>
-            <div><div class="cap2">Similitud</div><div class="num" id="figSimilarity"></div><div class="note" id="capSimilarity"></div></div>
-            <div><div class="cap2">Gaps</div><div class="num" id="figGaps"></div><div class="note" id="capGaps"></div></div>
-        </div>
-
-        <table class="parties">
-            <thead><tr><th></th><th>Entidad</th><th>Proteína</th><th>Organismo</th><th>Cadenas</th><th>Largo</th></tr></thead>
-            <tbody id="parties"></tbody>
-        </table>
-
-        <figure>
-            <h2>Región alineada en cada proteína</h2>
-            <div id="mapFigure"></div>
-            <figcaption>La parte oscura es la región que entró en el alineamiento; el contorno es la proteína completa.</figcaption>
-        </figure>
-
-        <figure>
-            <h2>Conservación a lo largo del alineamiento</h2>
-            <div id="profileFigure"></div>
-            <div class="legend">
-                <span><i class="sw id"></i>Idéntico</span><span><i class="sw sim"></i>Similar</span>
-                <span><i class="sw mis"></i>Sustitución</span><span><i class="sw gap"></i>Gap</span>
-            </div>
-            <figcaption>Línea oscura: % de identidad en ventanas de hasta 11 columnas. Línea clara: % de similitud (idénticos más similares). La franja inferior pinta cada columna del alineamiento.</figcaption>
-        </figure>
-
-        <h2>Alineamiento</h2>
-        <div id="alignment"></div>
-
-        <p class="method" id="method"></p>
+  <div class="panels no-print">
+    <section class="panel">
+      <h2>Proteína A</h2>
+      <label class="cap" for="codeA">Código PDB</label>
+      <div class="row">
+        <input type="text" id="codeA" maxlength="4" placeholder="4HHB" autocomplete="off">
+        <button type="button" id="searchA">Buscar</button>
+      </div>
+      <label class="cap" for="entityA">Entidad</label>
+      <select id="entityA" disabled></select>
+      <div class="hint" id="infoA">Cualquier código de entrada del PDB (4 caracteres).</div>
     </section>
+    <section class="panel">
+      <h2>Proteína B</h2>
+      <label class="cap" for="codeB">Código PDB</label>
+      <div class="row">
+        <input type="text" id="codeB" maxlength="4" placeholder="1MBN" autocomplete="off">
+        <button type="button" id="searchB">Buscar</button>
+      </div>
+      <label class="cap" for="entityB">Entidad</label>
+      <select id="entityB" disabled></select>
+      <div class="hint" id="infoB">Cualquier código de entrada del PDB (4 caracteres).</div>
+    </section>
+  </div>
+
+  <div class="toolbar no-print">
+    <div class="choices">
+      <label class="choice"><input type="radio" name="type" value="GLOBAL" checked> <strong>Global</strong> (Needleman-Wunsch)
+        <span class="optnote">Compara las dos proteínas completas, de punta a punta.</span></label>
+      <label class="choice"><input type="radio" name="type" value="LOCAL"> <strong>Local</strong> (Smith-Waterman)
+        <span class="optnote">Busca solo el tramo que más se parece.</span></label>
+    </div>
+    <button type="button" class="primary" id="compare">Comparar</button>
+  </div>
+
+  <div class="error hidden" id="error" role="alert"></div>
+
+  <section class="hidden" id="result">
+    <h3 id="resultTitle"></h3>
+    <p class="sub" id="resultSub"></p>
+    <p class="reading" id="reading"></p>
+
+    <div class="figures">
+      <div><div class="cap2">Score</div><div class="num" id="figScore"></div><div class="note" id="capScore"></div></div>
+      <div><div class="cap2">Identidad</div><div class="num" id="figIdentity"></div><div class="note" id="capIdentity"></div></div>
+      <div><div class="cap2">Similitud</div><div class="num" id="figSimilarity"></div><div class="note" id="capSimilarity"></div></div>
+      <div><div class="cap2">Gaps</div><div class="num" id="figGaps"></div><div class="note" id="capGaps"></div></div>
+    </div>
+
+    <details class="guide">
+      <summary>¿Cómo leer estos números?</summary>
+      <dl class="gloss">
+        <dt>Alineamiento</dt>
+        <dd>Es la forma de acomodar las dos secuencias, una sobre otra, para que las letras equivalentes queden en la misma columna. A veces hay que dejar un hueco en una de las dos para que el resto encaje.</dd>
+        <dt>Identidad</dt>
+        <dd>Porcentaje de columnas donde las dos proteínas tienen exactamente el mismo aminoácido.</dd>
+        <dt>Similitud</dt>
+        <dd>Identidad más las columnas con aminoácidos distintos pero de propiedades químicas parecidas, que se reemplazan con frecuencia entre proteínas emparentadas (la matriz BLOSUM62 les da puntaje positivo).</dd>
+        <dt>Hueco (gap)</dt>
+        <dd>Una columna donde una de las proteínas no tiene aminoácido. Representa una inserción o una pérdida de aminoácidos a lo largo de la evolución.</dd>
+        <dt>Score</dt>
+        <dd>Puntaje total: suma lo que la matriz le asigna a cada par de letras alineadas y resta una penalización por cada hueco. No es un porcentaje y crece con el largo de las proteínas, así que sirve para comparar alineamientos hechos con los mismos parámetros, no para comparar pares de proteínas de distinto tamaño.</dd>
+      </dl>
+    </details>
+
+    <table class="parties">
+      <thead><tr><th></th><th>Entidad</th><th>Proteína</th><th>Organismo</th><th>Cadenas</th><th>Largo</th></tr></thead>
+      <tbody id="parties"></tbody>
+    </table>
+
+    <figure>
+      <h2>Región alineada en cada proteína</h2>
+      <div id="mapFigure"></div>
+      <figcaption>La parte oscura es la región que entró en el alineamiento; el contorno es la proteína completa. En el alineamiento global casi siempre se llenan las dos barras; en el local solo se marca el tramo que más se parece.</figcaption>
+    </figure>
+
+    <figure>
+      <h2>Conservación a lo largo del alineamiento</h2>
+      <div id="profileFigure"></div>
+      <div class="legend">
+        <span><i class="sw id"></i>Idéntico</span><span><i class="sw sim"></i>Similar</span>
+        <span><i class="sw mis"></i>Sustitución</span><span><i class="sw gap"></i>Gap</span>
+      </div>
+      <figcaption>Línea oscura: % de identidad en ventanas de hasta 11 columnas. Línea clara: % de similitud. Las subidas marcan tramos donde las proteínas se parecen mucho; las bajadas, tramos donde divergen. La franja inferior pinta cada columna del alineamiento.</figcaption>
+    </figure>
+
+    <h2>Alineamiento</h2>
+    <div class="legend">
+      <span><i class="sw id"></i>Misma letra</span>
+      <span><i class="sw sim"></i>Letra distinta pero parecida</span>
+      <span><i class="sw gap"></i>Hueco: una de las proteínas no tiene aminoácido ahí</span>
+    </div>
+    <div id="alignment"></div>
+
+    <p class="method" id="method"></p>
+  </section>
 </main>
 
 <script>
-    const WIDTH = 60;
-    const EXAMPLES = {
-        hemoglobina: { a: ['4HHB', 1], b: ['4HHB', 2] },
-        histonas: { a: ['9ZZZ', 3], b: ['9ZZZ', 4] },
-        control: { a: ['4HHB', 1], b: ['4HHB', 1] }
-    };
-    const found = { A: [], B: [] };
-    const el = (id) => document.getElementById(id);
-    const NS = 'http://www.w3.org/2000/svg';
+  const WIDTH = 60;
+  const EXAMPLES = {
+    hemoglobina: { a: ['4HHB', 1], b: ['4HHB', 2] },
+    histonas: { a: ['9ZZZ', 3], b: ['9ZZZ', 4] },
+    control: { a: ['4HHB', 1], b: ['4HHB', 1] }
+  };
+  const found = { A: [], B: [] };
+  const el = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const fmt = (n) => n.toFixed(1).replace('.', ',');
 
-    async function fetchJson(url, options) {
-        let response;
-        try {
-            response = await fetch(url, options);
-        } catch (e) {
-            throw new Error('No se pudo conectar con el servidor');
-        }
-        let data = null;
-        try { data = await response.json(); } catch (e) { /* respuesta sin cuerpo */ }
-        if (!response.ok) {
-            throw new Error((data && data.detail) || 'Error ' + response.status);
-        }
-        return data;
+  async function fetchJson(url, options) {
+    let response;
+    try {
+      response = await fetch(url, options);
+    } catch (e) {
+      throw new Error('No se pudo conectar con el servidor');
+    }
+    let data = null;
+    try { data = await response.json(); } catch (e) { /* respuesta sin cuerpo */ }
+    if (!response.ok) {
+      throw new Error((data && data.detail) || 'Error ' + response.status);
+    }
+    return data;
+  }
+
+  function showError(message) {
+    el('error').textContent = message;
+    el('error').classList.remove('hidden');
+  }
+  function clearError() { el('error').classList.add('hidden'); }
+
+  function renderInfo(side) {
+    const entity = found[side].find((e) => String(e.entityId) === el('entity' + side).value);
+    el('info' + side).textContent = entity ? entity.organism : '';
+  }
+
+  async function search(side, preferredEntityId) {
+    const code = el('code' + side).value.trim();
+    const select = el('entity' + side);
+    clearError();
+    select.replaceChildren();
+    select.disabled = true;
+    found[side] = [];
+    el('info' + side).textContent = 'Buscando...';
+    try {
+      const entities = await fetchJson('/api/pdb/' + encodeURIComponent(code));
+      found[side] = entities;
+      for (const e of entities) {
+        const option = document.createElement('option');
+        option.value = e.entityId;
+        option.textContent = 'Entidad ' + e.entityId + ': ' + e.name +
+          ' (cadenas ' + e.chains.join(', ') + ', ' + e.length + ' aa)';
+        select.appendChild(option);
+      }
+      if (preferredEntityId && entities.some((e) => e.entityId === preferredEntityId)) {
+        select.value = String(preferredEntityId);
+      }
+      select.disabled = false;
+      renderInfo(side);
+    } catch (e) {
+      el('info' + side).textContent = '';
+      showError('Proteína ' + side + ': ' + e.message);
+    }
+  }
+
+  /* ---------- Clasificación de columnas: i idéntico, s similar, g gap, m sustitución ---------- */
+  function classify(a) {
+    const cols = [];
+    for (let i = 0; i < a.length; i++) {
+      const mark = a.matchLine[i];
+      if (mark === '|') cols.push('i');
+      else if (mark === ':') cols.push('s');
+      else if (a.alignedQuery[i] === '-' || a.alignedTarget[i] === '-') cols.push('g');
+      else cols.push('m');
+    }
+    return cols;
+  }
+
+  /* ---------- Lectura del resultado en lenguaje común ---------- */
+  function verdict(a) {
+    if (a.identities === a.length) return 'Son idénticas en todo el tramo comparado.';
+    if (a.identityPercent >= 90) return 'Las secuencias son casi idénticas.';
+    if (a.identityPercent >= 40) return 'La similitud es alta, lo habitual en proteínas emparentadas.';
+    if (a.identityPercent >= 25) return 'La similitud es moderada: puede indicar un parentesco lejano, pero habría que confirmarlo con otros datos.';
+    return 'La similitud es baja: con este dato solo no se puede afirmar que estén relacionadas.';
+  }
+
+  function gapsText(gaps) {
+    if (gaps === 0) return 'no hizo falta insertar huecos';
+    if (gaps === 1) return 'hizo falta insertar un hueco';
+    return 'hizo falta insertar ' + gaps + ' huecos';
+  }
+
+  function readingText(data) {
+    const a = data.alignment;
+    const same = a.identities + ' de ' + a.length + ' posiciones (' + fmt(a.identityPercent) + ' %)';
+    const extra = a.similarities > a.identities
+      ? ' Si se cuentan también los reemplazos por aminoácidos de propiedades parecidas, la coincidencia sube a ' +
+        fmt(a.similarityPercent) + ' %.'
+      : '';
+    if (a.type === 'GLOBAL') {
+      return 'Se alinearon las dos proteínas completas (' + data.query.length + ' y ' + data.target.length +
+        ' aminoácidos). Tienen la misma letra en ' + same + '.' + extra + ' Para acomodar las diferencias ' +
+        gapsText(a.gaps) + '. ' + verdict(a) + ' (Criterio orientativo.)';
+    }
+    const coverageA = Math.round(100 * (a.queryEnd - a.queryStart + 1) / data.query.length);
+    const coverageB = Math.round(100 * (a.targetEnd - a.targetStart + 1) / data.target.length);
+    return 'Se buscó el tramo que más se parece entre las dos proteínas: la región ' + a.queryStart + '–' + a.queryEnd +
+      ' de A (' + coverageA + ' % de la proteína) contra la región ' + a.targetStart + '–' + a.targetEnd +
+      ' de B (' + coverageB + ' %). Dentro de ese tramo tienen la misma letra en ' + same + '.' + extra +
+      ' Para acomodar las diferencias ' + gapsText(a.gaps) + '. ' + verdict(a) +
+      ' (Criterio orientativo, válido solo para el tramo, no para toda la proteína.)';
+  }
+
+  /* ---------- Alineamiento en texto, con las columnas resaltadas ---------- */
+  const countResidues = (text) => text.replace(/-/g, '').length;
+
+  function appendRuns(parent, text, classes) {
+    let start = 0;
+    while (start < text.length) {
+      let end = start + 1;
+      while (end < text.length && classes[end] === classes[start]) end++;
+      const piece = text.slice(start, end);
+      if (classes[start] === 'm') {
+        parent.append(piece);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'c-' + classes[start];
+        span.textContent = piece;
+        parent.appendChild(span);
+      }
+      start = end;
+    }
+  }
+
+  function line(tag, from, text, classes, to) {
+    const row = document.createElement('div');
+    row.className = 'ln';
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag';
+    tagEl.textContent = tag;
+    const pos = document.createElement('span');
+    pos.className = 'pos';
+    pos.textContent = from === null ? '' : String(from);
+    const seq = document.createElement('span');
+    seq.className = 'seq';
+    if (classes) appendRuns(seq, text, classes); else seq.textContent = text;
+    const end = document.createElement('span');
+    end.className = 'endpos';
+    end.textContent = to === null ? '' : String(to);
+    row.append(tagEl, pos, seq, end);
+    return row;
+  }
+
+  function renderAlignment(a, cols) {
+    const out = el('alignment');
+    out.replaceChildren();
+    let queryPos = a.queryStart - 1;
+    let targetPos = a.targetStart - 1;
+    for (let i = 0; i < a.length; i += WIDTH) {
+      const q = a.alignedQuery.slice(i, i + WIDTH);
+      const m = a.matchLine.slice(i, i + WIDTH);
+      const t = a.alignedTarget.slice(i, i + WIDTH);
+      const chunk = cols.slice(i, i + WIDTH);
+      const queryFrom = queryPos + 1;
+      const targetFrom = targetPos + 1;
+      queryPos += countResidues(q);
+      targetPos += countResidues(t);
+      out.append(line('A', queryFrom, q, chunk, queryPos),
+                 line('', null, m, null, null),
+                 line('B', targetFrom, t, chunk, targetPos),
+                 line('', null, ' ', null, null));
+    }
+  }
+
+  /* ---------- Gráficos SVG ---------- */
+  function svgEl(name, attrs, parent) {
+    const node = document.createElementNS(NS, name);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+  function svgText(parent, text, attrs) {
+    const node = svgEl('text', attrs, parent);
+    node.textContent = text;
+    return node;
+  }
+
+  function drawMap(data) {
+    const a = data.alignment;
+    const W = 960, left = 150, right = 24, barH = 22;
+    const maxLen = Math.max(data.query.length, data.target.length);
+    const scale = (W - left - right) / maxLen;
+    const box = el('mapFigure');
+    box.replaceChildren();
+    const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' 112', role: 'img',
+      'aria-label': 'Región alineada en cada proteína' }, box);
+    const rows = [
+      { name: 'A · ' + data.query.id, length: data.query.length, from: a.queryStart, to: a.queryEnd, y: 22 },
+      { name: 'B · ' + data.target.id, length: data.target.length, from: a.targetStart, to: a.targetEnd, y: 72 }
+    ];
+    for (const r of rows) {
+      svgText(svg, r.name, { x: 0, y: r.y + 16, class: 'svg-label' });
+      svgEl('rect', { x: left, y: r.y, width: r.length * scale, height: barH, class: 'bar-outline' }, svg);
+      svgEl('rect', { x: left + (r.from - 1) * scale, y: r.y,
+        width: (r.to - r.from + 1) * scale, height: barH, class: 'fid' }, svg);
+      svgText(svg, r.from + '–' + r.to + ' de ' + r.length + ' aa',
+        { x: left + r.length * scale, y: r.y - 6, 'text-anchor': 'end', class: 'svg-note' }, svg);
+    }
+  }
+
+  function niceStep(length) {
+    const target = length / 8;
+    return [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => s >= target) || 1000;
+  }
+
+  function drawProfile(a, cols) {
+    const L = cols.length;
+    const W = 960, H = 250, ml = 48, mr = 12, mt = 12, ph = 150, pw = W - ml - mr;
+    const box = el('profileFigure');
+    box.replaceChildren();
+    const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img',
+      'aria-label': 'Perfil de identidad y similitud a lo largo del alineamiento' }, box);
+    const x = (i) => ml + (L > 1 ? (i / (L - 1)) * pw : pw / 2);
+    const y = (p) => mt + ph - p * ph;
+
+    for (const p of [0, 0.25, 0.5, 0.75, 1]) {
+      svgEl('line', { x1: ml, x2: ml + pw, y1: y(p), y2: y(p), class: p === 0 ? 'axis' : 'grid' }, svg);
+      svgText(svg, Math.round(p * 100) + ' %', { x: ml - 8, y: y(p) + 4, 'text-anchor': 'end', class: 'svg-note' });
     }
 
-    function showError(message) {
-        el('error').textContent = message;
-        el('error').classList.remove('hidden');
+    const half = Math.floor(Math.min(11, L) / 2);
+    const idPoints = [];
+    const simPoints = [];
+    for (let i = 0; i < L; i++) {
+      const from = Math.max(0, i - half);
+      const to = Math.min(L - 1, i + half);
+      let ids = 0, sims = 0;
+      for (let j = from; j <= to; j++) {
+        if (cols[j] === 'i') { ids++; sims++; } else if (cols[j] === 's') { sims++; }
+      }
+      const n = to - from + 1;
+      idPoints.push(x(i).toFixed(1) + ',' + y(ids / n).toFixed(1));
+      simPoints.push(x(i).toFixed(1) + ',' + y(sims / n).toFixed(1));
     }
-    function clearError() { el('error').classList.add('hidden'); }
+    svgEl('polyline', { points: simPoints.join(' '), class: 'line-sim' }, svg);
+    svgEl('polyline', { points: idPoints.join(' '), class: 'line-id' }, svg);
 
-    function renderInfo(side) {
-        const entity = found[side].find((e) => String(e.entityId) === el('entity' + side).value);
-        el('info' + side).textContent = entity ? entity.organism : '';
-    }
-
-    async function search(side, preferredEntityId) {
-        const code = el('code' + side).value.trim();
-        const select = el('entity' + side);
-        clearError();
-        select.replaceChildren();
-        select.disabled = true;
-        found[side] = [];
-        el('info' + side).textContent = 'Buscando...';
-        try {
-            const entities = await fetchJson('/api/pdb/' + encodeURIComponent(code));
-            found[side] = entities;
-            for (const e of entities) {
-                const option = document.createElement('option');
-                option.value = e.entityId;
-                option.textContent = 'Entidad ' + e.entityId + ': ' + e.name +
-                    ' (cadenas ' + e.chains.join(', ') + ', ' + e.length + ' aa)';
-                select.appendChild(option);
-            }
-            if (preferredEntityId && entities.some((e) => e.entityId === preferredEntityId)) {
-                select.value = String(preferredEntityId);
-            }
-            select.disabled = false;
-            renderInfo(side);
-        } catch (e) {
-            el('info' + side).textContent = '';
-            showError('Proteína ' + side + ': ' + e.message);
-        }
+    const ticks = [1];
+    for (let c = niceStep(L); c <= L; c += niceStep(L)) ticks.push(c);
+    for (const c of ticks) {
+      svgEl('line', { x1: x(c - 1), x2: x(c - 1), y1: y(0), y2: y(0) + 5, class: 'axis' }, svg);
+      svgText(svg, String(c), { x: x(c - 1), y: y(0) + 19, 'text-anchor': 'middle', class: 'svg-note' });
     }
 
-    /* ---------- Clasificación de columnas: i idéntico, s similar, g gap, m sustitución ---------- */
-    function classify(a) {
-        const cols = [];
-        for (let i = 0; i < a.length; i++) {
-            const mark = a.matchLine[i];
-            if (mark === '|') cols.push('i');
-            else if (mark === ':') cols.push('s');
-            else if (a.alignedQuery[i] === '-' || a.alignedTarget[i] === '-') cols.push('g');
-            else cols.push('m');
-        }
-        return cols;
+    const stripY = y(0) + 28;
+    let start = 0;
+    while (start < L) {
+      let end = start + 1;
+      while (end < L && cols[end] === cols[start]) end++;
+      const cls = { i: 'fid', s: 'fsim', m: 'fmis', g: 'fgap' }[cols[start]];
+      svgEl('rect', { x: ml + (start / L) * pw, y: stripY, width: ((end - start) / L) * pw, height: 16, class: cls }, svg);
+      start = end;
     }
+    svgText(svg, 'Posición en el alineamiento (columnas)',
+      { x: ml + pw / 2, y: stripY + 38, 'text-anchor': 'middle', class: 'svg-note' });
+  }
 
-    /* ---------- Alineamiento en texto, con las columnas resaltadas ---------- */
-    const countResidues = (text) => text.replace(/-/g, '').length;
+  /* ---------- Cifras, tabla y notas ---------- */
+  function renderFigures(a) {
+    el('figScore').textContent = Number.isInteger(a.score) ? a.score : fmt(a.score);
+    el('capScore').textContent = a.matrix;
+    el('figIdentity').textContent = fmt(a.identityPercent) + ' %';
+    el('capIdentity').textContent = a.identities + ' de ' + a.length + ' posiciones';
+    el('figSimilarity').textContent = fmt(a.similarityPercent) + ' %';
+    el('capSimilarity').textContent = a.similarities + ' de ' + a.length + ' posiciones';
+    el('figGaps').textContent = a.gaps;
+    el('capGaps').textContent = 'en ' + a.length + ' columnas';
+  }
 
-    function appendRuns(parent, text, classes) {
-        let start = 0;
-        while (start < text.length) {
-            let end = start + 1;
-            while (end < text.length && classes[end] === classes[start]) end++;
-            const piece = text.slice(start, end);
-            if (classes[start] === 'm') {
-                parent.append(piece);
-            } else {
-                const span = document.createElement('span');
-                span.className = 'c-' + classes[start];
-                span.textContent = piece;
-                parent.appendChild(span);
-            }
-            start = end;
-        }
+  function renderParties(data) {
+    const body = el('parties');
+    body.replaceChildren();
+    const rows = [['A', data.query], ['B', data.target]];
+    for (const [tag, p] of rows) {
+      const tr = document.createElement('tr');
+      for (const value of [tag, p.id, p.name, p.organism, p.chains.join(', '), p.length + ' aa']) {
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      }
+      body.appendChild(tr);
     }
+  }
 
-    function line(tag, from, text, classes, to) {
-        const row = document.createElement('div');
-        row.className = 'ln';
-        const tagEl = document.createElement('span');
-        tagEl.className = 'tag';
-        tagEl.textContent = tag;
-        const pos = document.createElement('span');
-        pos.className = 'pos';
-        pos.textContent = from === null ? '' : String(from);
-        const seq = document.createElement('span');
-        seq.className = 'seq';
-        if (classes) appendRuns(seq, text, classes); else seq.textContent = text;
-        const end = document.createElement('span');
-        end.className = 'endpos';
-        end.textContent = to === null ? '' : String(to);
-        row.append(tagEl, pos, seq, end);
-        return row;
+  function renderResult(data) {
+    const a = data.alignment;
+    const cols = classify(a);
+    el('resultTitle').textContent = a.algorithm + ': alineamiento ' + (a.type === 'GLOBAL' ? 'global' : 'local');
+    el('resultSub').textContent = data.query.id + ' (' + data.query.name + ') contra ' +
+      data.target.id + ' (' + data.target.name + ')';
+    el('reading').textContent = readingText(data);
+    renderFigures(a);
+    renderParties(data);
+    drawMap(data);
+    drawProfile(a, cols);
+    renderAlignment(a, cols);
+    el('method').textContent = 'Matriz de sustitución ' + a.matrix + '; penalización de gap: apertura ' +
+      a.gapOpen + ', extensión ' + a.gapExtension + '. Identidad y similitud se calculan sobre el largo del ' +
+      'alineamiento (columnas, incluidos los gaps). Se considera similar una sustitución con score positivo en la matriz. ' +
+      'Secuencias obtenidas de RCSB PDB.';
+    el('result').classList.remove('hidden');
+    el('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function compare() {
+    clearError();
+    if (!el('entityA').value || !el('entityB').value) {
+      showError('Primero buscá las dos proteínas y elegí una entidad de cada una.');
+      return;
     }
-
-    function renderAlignment(a, cols) {
-        const out = el('alignment');
-        out.replaceChildren();
-        let queryPos = a.queryStart - 1;
-        let targetPos = a.targetStart - 1;
-        for (let i = 0; i < a.length; i += WIDTH) {
-            const q = a.alignedQuery.slice(i, i + WIDTH);
-            const m = a.matchLine.slice(i, i + WIDTH);
-            const t = a.alignedTarget.slice(i, i + WIDTH);
-            const chunk = cols.slice(i, i + WIDTH);
-            const queryFrom = queryPos + 1;
-            const targetFrom = targetPos + 1;
-            queryPos += countResidues(q);
-            targetPos += countResidues(t);
-            out.append(line('A', queryFrom, q, chunk, queryPos),
-                line('', null, m, null, null),
-                line('B', targetFrom, t, chunk, targetPos),
-                line('', null, ' ', null, null));
-        }
+    const button = el('compare');
+    button.disabled = true;
+    try {
+      const data = await fetchJson('/api/align', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: { code: el('codeA').value.trim(), entityId: Number(el('entityA').value) },
+          target: { code: el('codeB').value.trim(), entityId: Number(el('entityB').value) },
+          type: document.querySelector('input[name="type"]:checked').value
+        })
+      });
+      renderResult(data);
+    } catch (e) {
+      el('result').classList.add('hidden');
+      showError(e.message);
+    } finally {
+      button.disabled = false;
     }
+  }
 
-    /* ---------- Gráficos SVG ---------- */
-    function svgEl(name, attrs, parent) {
-        const node = document.createElementNS(NS, name);
-        for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
-        if (parent) parent.appendChild(node);
-        return node;
-    }
-    function svgText(parent, text, attrs) {
-        const node = svgEl('text', attrs, parent);
-        node.textContent = text;
-        return node;
-    }
+  async function loadExample(name) {
+    const example = EXAMPLES[name];
+    el('codeA').value = example.a[0];
+    el('codeB').value = example.b[0];
+    await Promise.all([search('A', example.a[1]), search('B', example.b[1])]);
+  }
 
-    function drawMap(data) {
-        const a = data.alignment;
-        const W = 960, left = 150, right = 24, barH = 22;
-        const maxLen = Math.max(data.query.length, data.target.length);
-        const scale = (W - left - right) / maxLen;
-        const box = el('mapFigure');
-        box.replaceChildren();
-        const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' 112', role: 'img',
-            'aria-label': 'Región alineada en cada proteína' }, box);
-        const rows = [
-            { name: 'A · ' + data.query.id, length: data.query.length, from: a.queryStart, to: a.queryEnd, y: 22 },
-            { name: 'B · ' + data.target.id, length: data.target.length, from: a.targetStart, to: a.targetEnd, y: 72 }
-        ];
-        for (const r of rows) {
-            svgText(svg, r.name, { x: 0, y: r.y + 16, class: 'svg-label' });
-            svgEl('rect', { x: left, y: r.y, width: r.length * scale, height: barH, class: 'bar-outline' }, svg);
-            svgEl('rect', { x: left + (r.from - 1) * scale, y: r.y,
-                width: (r.to - r.from + 1) * scale, height: barH, class: 'fid' }, svg);
-            svgText(svg, r.from + '–' + r.to + ' de ' + r.length + ' aa',
-                { x: left + r.length * scale, y: r.y - 6, 'text-anchor': 'end', class: 'svg-note' }, svg);
-        }
-    }
-
-    function niceStep(length) {
-        const target = length / 8;
-        return [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => s >= target) || 1000;
-    }
-
-    function drawProfile(a, cols) {
-        const L = cols.length;
-        const W = 960, H = 250, ml = 48, mr = 12, mt = 12, ph = 150, pw = W - ml - mr;
-        const box = el('profileFigure');
-        box.replaceChildren();
-        const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img',
-            'aria-label': 'Perfil de identidad y similitud a lo largo del alineamiento' }, box);
-        const x = (i) => ml + (L > 1 ? (i / (L - 1)) * pw : pw / 2);
-        const y = (p) => mt + ph - p * ph;
-
-        for (const p of [0, 0.25, 0.5, 0.75, 1]) {
-            svgEl('line', { x1: ml, x2: ml + pw, y1: y(p), y2: y(p), class: p === 0 ? 'axis' : 'grid' }, svg);
-            svgText(svg, Math.round(p * 100) + ' %', { x: ml - 8, y: y(p) + 4, 'text-anchor': 'end', class: 'svg-note' });
-        }
-
-        const half = Math.floor(Math.min(11, L) / 2);
-        const idPoints = [];
-        const simPoints = [];
-        for (let i = 0; i < L; i++) {
-            const from = Math.max(0, i - half);
-            const to = Math.min(L - 1, i + half);
-            let ids = 0, sims = 0;
-            for (let j = from; j <= to; j++) {
-                if (cols[j] === 'i') { ids++; sims++; } else if (cols[j] === 's') { sims++; }
-            }
-            const n = to - from + 1;
-            idPoints.push(x(i).toFixed(1) + ',' + y(ids / n).toFixed(1));
-            simPoints.push(x(i).toFixed(1) + ',' + y(sims / n).toFixed(1));
-        }
-        svgEl('polyline', { points: simPoints.join(' '), class: 'line-sim' }, svg);
-        svgEl('polyline', { points: idPoints.join(' '), class: 'line-id' }, svg);
-
-        const ticks = [1];
-        for (let c = niceStep(L); c <= L; c += niceStep(L)) ticks.push(c);
-        for (const c of ticks) {
-            svgEl('line', { x1: x(c - 1), x2: x(c - 1), y1: y(0), y2: y(0) + 5, class: 'axis' }, svg);
-            svgText(svg, String(c), { x: x(c - 1), y: y(0) + 19, 'text-anchor': 'middle', class: 'svg-note' });
-        }
-
-        const stripY = y(0) + 28;
-        let start = 0;
-        while (start < L) {
-            let end = start + 1;
-            while (end < L && cols[end] === cols[start]) end++;
-            const cls = { i: 'fid', s: 'fsim', m: 'fmis', g: 'fgap' }[cols[start]];
-            svgEl('rect', { x: ml + (start / L) * pw, y: stripY, width: ((end - start) / L) * pw, height: 16, class: cls }, svg);
-            start = end;
-        }
-        svgText(svg, 'Posición en el alineamiento (columnas)',
-            { x: ml + pw / 2, y: stripY + 38, 'text-anchor': 'middle', class: 'svg-note' });
-    }
-
-    /* ---------- Cifras, tabla y notas ---------- */
-    function renderFigures(a) {
-        el('figScore').textContent = Number.isInteger(a.score) ? a.score : a.score.toFixed(1);
-        el('capScore').textContent = a.matrix;
-        el('figIdentity').textContent = a.identityPercent.toFixed(1) + ' %';
-        el('capIdentity').textContent = a.identities + ' de ' + a.length + ' posiciones';
-        el('figSimilarity').textContent = a.similarityPercent.toFixed(1) + ' %';
-        el('capSimilarity').textContent = a.similarities + ' de ' + a.length + ' posiciones';
-        el('figGaps').textContent = a.gaps;
-        el('capGaps').textContent = 'en ' + a.length + ' columnas';
-    }
-
-    function renderParties(data) {
-        const body = el('parties');
-        body.replaceChildren();
-        const rows = [['A', data.query], ['B', data.target]];
-        for (const [tag, p] of rows) {
-            const tr = document.createElement('tr');
-            for (const value of [tag, p.id, p.name, p.organism, p.chains.join(', '), p.length + ' aa']) {
-                const td = document.createElement('td');
-                td.textContent = value;
-                tr.appendChild(td);
-            }
-            body.appendChild(tr);
-        }
-    }
-
-    function renderResult(data) {
-        const a = data.alignment;
-        const cols = classify(a);
-        el('resultTitle').textContent = a.algorithm + ': alineamiento ' + (a.type === 'GLOBAL' ? 'global' : 'local');
-        el('resultSub').textContent = data.query.id + ' (' + data.query.name + ') contra ' +
-            data.target.id + ' (' + data.target.name + ')';
-        renderFigures(a);
-        renderParties(data);
-        drawMap(data);
-        drawProfile(a, cols);
-        renderAlignment(a, cols);
-        el('method').textContent = 'Matriz de sustitución ' + a.matrix + '; penalización de gap: apertura ' +
-            a.gapOpen + ', extensión ' + a.gapExtension + '. Identidad y similitud se calculan sobre el largo del ' +
-            'alineamiento (columnas, incluidos los gaps). Se considera similar una sustitución con score positivo en la matriz. ' +
-            'Secuencias obtenidas de RCSB PDB.';
-        el('result').classList.remove('hidden');
-        el('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    async function compare() {
-        clearError();
-        if (!el('entityA').value || !el('entityB').value) {
-            showError('Primero buscá las dos proteínas y elegí una entidad de cada una.');
-            return;
-        }
-        const button = el('compare');
-        button.disabled = true;
-        try {
-            const data = await fetchJson('/api/align', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: { code: el('codeA').value.trim(), entityId: Number(el('entityA').value) },
-                    target: { code: el('codeB').value.trim(), entityId: Number(el('entityB').value) },
-                    type: document.querySelector('input[name="type"]:checked').value
-                })
-            });
-            renderResult(data);
-        } catch (e) {
-            el('result').classList.add('hidden');
-            showError(e.message);
-        } finally {
-            button.disabled = false;
-        }
-    }
-
-    async function loadExample(name) {
-        const example = EXAMPLES[name];
-        el('codeA').value = example.a[0];
-        el('codeB').value = example.b[0];
-        await Promise.all([search('A', example.a[1]), search('B', example.b[1])]);
-    }
-
-    for (const side of ['A', 'B']) {
-        el('search' + side).addEventListener('click', () => search(side));
-        el('code' + side).addEventListener('keydown', (event) => { if (event.key === 'Enter') search(side); });
-        el('entity' + side).addEventListener('change', () => renderInfo(side));
-    }
-    el('compare').addEventListener('click', compare);
-    for (const chip of document.querySelectorAll('[data-example]')) {
-        chip.addEventListener('click', () => loadExample(chip.dataset.example));
-    }
+  for (const side of ['A', 'B']) {
+    el('search' + side).addEventListener('click', () => search(side));
+    el('code' + side).addEventListener('keydown', (event) => { if (event.key === 'Enter') search(side); });
+    el('entity' + side).addEventListener('change', () => renderInfo(side));
+  }
+  el('compare').addEventListener('click', compare);
+  for (const chip of document.querySelectorAll('[data-example]')) {
+    chip.addEventListener('click', () => loadExample(chip.dataset.example));
+  }
 </script>
 </body>
 </html>
