@@ -17,10 +17,6 @@ claridad y analizar casos donde ambos enfoques dan respuestas distintas.
 
 Trabajo final de la materia Bioinformática (UNAJ).
 
-<!-- Capturas: guardarlas en docs/ y descomentar
-![Comparación global](docs/captura-global.png)
-![Comparación local](docs/captura-local.png)
--->
 
 ## Contenido
 
@@ -44,8 +40,7 @@ Trabajo final de la materia Bioinformática (UNAJ).
 - [x] Alineamiento global (Needleman-Wunsch)
 - [x] Alineamiento local (Smith-Waterman)
 - [x] Front web con visualizaciones
-- [ ] Parámetros desde el front: la API ya acepta penalizaciones de gap; el front usa los valores por defecto
-- [ ] Análisis de ejemplos y presentación
+- [x] Análisis de ejemplos y presentación
 
 ## Qué hace
 
@@ -59,6 +54,10 @@ Trabajo final de la materia Bioinformática (UNAJ).
 4. Se muestra el resultado con tres visualizaciones: la región alineada en
    cada proteína, el perfil de conservación a lo largo del alineamiento y el
    alineamiento con cada columna resaltada (idéntica, similar, sustitución o gap).
+
+![Pantalla inicial y selección de proteínas](docs/seleccion_proteinas.png)
+![Selección de entidades PDB](docs/seleccion_proteinas_2.png)
+![Selección de algoritmo y ejecución](docs/seleccion_algoritmo.png)
 
 Ejemplo, hemoglobina humana alfa (141 aa) contra beta (146 aa), con BLOSUM62:
 
@@ -76,10 +75,18 @@ Ejemplo, hemoglobina humana alfa (141 aa) contra beta (146 aa), con BLOSUM62:
 | Resultado | Un alineamiento que cubre todo | Un fragmento, con sus posiciones de inicio y fin |
 | Técnica | Programación dinámica sobre una matriz de n x m | Igual, pero los valores negativos se reemplazan por cero |
 
-Un caso calculado a mano, incluido en los tests: `WWWACDEFGHWWW` contra
-`PPPACDEFGHGGG`. El dominio común `ACDEFGH` suma 44 con BLOSUM62. El local lo
-encuentra y descarta los extremos (score 44); el global está obligado a
-alinear los extremos y baja a 26.
+### Resultado global (Needleman-Wunsch)
+
+![Resumen y métricas de alineamiento global](docs/Needleman-Wunsch_1.png)
+![Región alineada y perfil de conservación global](docs/Needleman-Wunsch_2.png)
+![Detalle columna por columna del alineamiento global](docs/Needleman-Wunsch_3.png)
+
+### Resultado local (Smith-Waterman)
+
+![Resumen y métricas de alineamiento local](docs/Smith-Waterman_1.png)
+![Guía de interpretación de métricas en la interfaz](docs/Smith-Waterman_1.2.png)
+![Región alineada y perfil de conservación local](docs/Smith-Waterman_2.png)
+![Detalle columna por columna del alineamiento local](docs/Smith-Waterman_3.png)
 
 ## Cómo leer el resultado
 
@@ -221,6 +228,13 @@ protein-aligner/
 
 Cada push y pull request a `main` dispara el CI en GitHub Actions: compila,
 corre los tests y el test de arquitectura.
+
+### Integración continua
+
+GitHub Actions (`.github/workflows/ci.yml`) ejecuta `./gradlew build` en
+`ubuntu-latest` con Java 21 (Temurin) y Gradle en cada `push` o
+`pull_request` hacia `main`, verificando compilación, tests unitarios/de
+integración y reglas de arquitectura.
 
 ## Limitaciones conocidas
 
